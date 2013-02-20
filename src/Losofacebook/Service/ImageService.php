@@ -86,8 +86,10 @@ class ImageService
 
         $thumb = clone $image;
         $thumb->cropThumbnailimage(500, 500);
+    
         $thumb->setImageCompression(self::COMPRESSION_TYPE);
         $thumb->setImageCompressionQuality(90);
+        $thumb->resizeimage(360, 360, imagick::COLOR_CYAN  , 1);
         $thumb->writeImage($this->basePath . '/' . $id . '-thumb');
     }
 
@@ -100,7 +102,11 @@ class ImageService
         $thumb->cropThumbnailimage(500, 500);
         $thumb->setImageCompression(self::COMPRESSION_TYPE);
         $thumb->setImageCompressionQuality(90);
+       // $thumb->cropimage($width, $height, $x, $y);
+        $thumb->resizeimage(153,153, imagick::COLOR_CYAN  , 1);
+
         $thumb->writeImage($this->basePath . '/' . $id . '-thumb');
+
     }
 
     public function getImageResponse($id, $version = null)
