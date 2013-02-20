@@ -6,6 +6,7 @@ use Losofacebook\Post;
 use Losofacebook\Comment;
 use Losofacebook\Service\PersonService;
 use DateTime;
+use Memcached;
 
 /**
  * Image service
@@ -25,10 +26,12 @@ class PostService
     /**
      * @param $basePath
      */
-    public function __construct(Connection $conn, PersonService $personService)
+    private $memcached;
+    public function __construct(Connection $conn, PersonService $personService, Memcached $memcached)
     {
         $this->conn = $conn;
         $this->personService = $personService;
+        $this->memcached = $memcached;
     }
 
     /**
@@ -90,7 +93,11 @@ class PostService
      * @param $path
      */
     public function findByPersonId($personId)
-    {
+    {  $cacheID = "post_{$personId}";
+        
+        if($cpost = $this->memcached->get($cacheID)){
+            return $cpost;
+        }
         $data = $this->conn->fetchAll(
             "SELECT * FROM post WHERE person_id = ? ORDER BY date_created DESC", [$personId]
         );
@@ -105,7 +112,7 @@ class PostService
 
             $posts[] = $post;
         }
-
+        $this->memcached->set($cacheID, $posts, 60);
         return $posts;
     }
 

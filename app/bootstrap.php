@@ -17,6 +17,9 @@ use Symfony\Component\HttpKernel\Event\KernelEvent;
 use Silex\Provider\SessionServiceProvider;
 use Doctrine\DBAL\Query\QueryBuilder;
 
+use Silex\Provider\MonologServiceProvider;
+use Monolog\Handler\ChromePHPHandler;
+
 $app = new Silex\Application();
 
 $app['debug'] = true;
@@ -58,16 +61,23 @@ $app->register(
 
 // Services
 
+$app['memcached'] = $app->share(function(Application $app) {
+    $m = new Memcached();
+    $m->addServer('localhost', 11211);
+    return $m;
+    
+});
+
 $app['imageService'] = $app->share(function (Application $app) {
     return new ImageService($app['db'], realpath(__DIR__ . '/data/images'));
 });
 
 $app['personService'] = $app->share(function (Application $app) {
-    return new PersonService($app['db']);
+    return new PersonService($app['db'], $app['memcached']);
 });
 
 $app['postService'] = $app->share(function (Application $app) {
-    return new PostService($app['db'], $app['personService']);
+    return new PostService($app['db'], $app['personService'], $app['memcached']);
 });
 
 $app['companyService'] = $app->share(function (Application $app) {
@@ -93,7 +103,7 @@ $app->get('/api/person', function(Application $app, Request $request) {
         }
     }
 
-    $persons = $personService->findBy($params, false);
+    $persons = $personService->findBy($params, [], false);
 
     return new JsonResponse(
         $persons
@@ -132,7 +142,7 @@ $app->get('/api/post/{personId}', function(Application $app, $personId) {
 
     /** @var PostService $postService */
     $postService = $app['postService'];
-
+    
     $posts = $postService->findByPersonId($personId);
 
     return new JsonResponse(
@@ -200,6 +210,8 @@ $app->get('/api/company/{name}', function(Application $app, $name) {
 
 });
 
+
+ 
 
 
 
