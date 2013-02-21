@@ -78,8 +78,9 @@ class ImageService
 
         $x = (500 - $geo['width']) / 2;
         $y = (500 - $geo['height']) / 2;
-
-        $image = new Imagick();
+        $key = 'thumb';
+                    $versionPath = $this->basePath . '/' . $id . '-' . $key;
+        $image = new Imagick($this->basePath . '/' . $id);
         $image->newImage(500, 500, new ImagickPixel('white'));
         $image->setImageFormat('jpeg');
         $image->compositeImage($img, $img->getImageCompose(), $x, $y);
@@ -91,21 +92,68 @@ class ImageService
         $thumb->setImageCompressionQuality(90);
         $thumb->resizeimage(360, 360, imagick::COLOR_CYAN  , 1);
         $thumb->writeImage($this->basePath . '/' . $id . '-thumb');
+        
+         $linkPath = realpath($this->basePath . '/../../../web/images')
+                    . '/' . $id . '-' . $key . '.jpg';
+                        
+            if (!is_link($linkPath)) {
+                symlink($versionPath, $linkPath);
+            } 
     }
 
-
+        protected function getImageVersions()
+    {
+        return [
+            'thumb' => [
+                360,
+                90
+            ],
+            '75x75' => [
+                75,
+                90
+            ],
+            '50x50' => [
+                50,
+                70
+            ],
+           '20x20' => [
+               20,
+                70
+            ],
+            '260x260' => [
+                260,
+                90
+            ],
+ 
+ 
+        ];
+    }
     public function createVersions($id)
     {
-        $img = new Imagick($this->basePath . '/' . $id);
-        $thumb = clone $img;
-
-        $thumb->cropThumbnailimage(500, 500);
-        $thumb->setImageCompression(self::COMPRESSION_TYPE);
-        $thumb->setImageCompressionQuality(90);
-       // $thumb->cropimage($width, $height, $x, $y);
-        $thumb->resizeimage(153,153, imagick::COLOR_CYAN  , 1);
-
-        $thumb->writeImage($this->basePath . '/' . $id . '-thumb');
+       $img = new Imagick($this->basePath . '/' . $id);
+        
+        foreach ($this->getImageVersions() as $key => $data) {
+            
+            list($size, $cq) = $data;
+            
+            $versionPath = $this->basePath . '/' . $id . '-' . $key;
+            
+            $v = clone $img;
+            $v->stripImage();
+            $v->cropThumbnailimage($size, $size);
+            $v->setImageCompression(self::COMPRESSION_TYPE);
+            $v->setInterlaceScheme(Imagick::INTERLACE_PLANE);
+            $v->setImageCompressionQuality($cq);
+            $v->writeImage($versionPath);
+            
+            $linkPath = realpath($this->basePath . '/../../../web/images')
+                    . '/' . $id . '-' . $key . '.jpg';
+                        
+            if (!is_link($linkPath)) {
+                symlink($versionPath, $linkPath);
+            }            
+            
+        }           
 
     }
 
